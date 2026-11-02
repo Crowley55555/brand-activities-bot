@@ -1,0 +1,33 @@
+# tinyproxy allow-list (I-4, фаза 10a)
+#
+# Шаблон. При деплое NL копируется в deploy/tinyproxy.conf, в котором
+# <RU_SERVER_IP> заменяется на реальный IPv4 RU-сервера. Файл deploy/tinyproxy.conf
+# в git не коммитится (см. .gitignore).
+#
+# monokal/tinyproxy по умолчанию стартовал с command: ["ANY"] и слушал всё.
+# Защита шла только через внешний ufw: если его забыли или сбросили — у нас
+# открытый прокси в интернет. Этот конфиг кладём через volume, и allow-list
+# применяется самим tinyproxy, вне зависимости от firewall хоста.
+#
+# Протоколы: только HTTPS к Telegram CDN (ConnectPort 443). HTTP не пропускаем.
+#
+# Проверка на 2-м сервере (NL):
+#   docker compose -f docker-compose.tg.yml --env-file .env.tg up -d tinyproxy
+#   curl -x http://<NL_IP>:8443 https://api.telegram.org/robots.txt   # с RU-сервера → 200
+#   curl -x http://<NL_IP>:8443 https://api.telegram.org/robots.txt   # с чужого IP → 403
+Port 8888
+Listen 0.0.0.0
+Timeout 600
+DefaultErrorFile "/usr/share/tinyproxy/default.html"
+StatFile "/usr/share/tinyproxy/stats.html"
+LogLevel Notice
+LogFile "/dev/stdout"
+MaxClients 50
+
+# Единственный разрешённый источник — RU-сервер.
+# <RU_SERVER_IP> подставляется руками через `sed` при деплое.
+Allow <RU_SERVER_IP>
+
+# HTTPS к Telegram и NNTPS (SSL/TLS tunneling через CONNECT).
+ConnectPort 443
+ConnectPort 563

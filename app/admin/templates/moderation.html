@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Модерация UGC</h1>
+<p class="count">В очереди: {{ rows|length }}</p>
+{% if rows %}
+<table class="queue">
+  <thead>
+    <tr><th>Фото</th><th>Бренд</th><th>Пост</th><th>Подписка</th><th>Подано (UTC)</th><th></th></tr>
+  </thead>
+  <tbody>
+  {% for row in rows %}
+    {% include "moderation_row.html" %}
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>Очередь пуста.</p>
+{% endif %}
+{% endblock %}

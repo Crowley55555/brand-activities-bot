@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>DLQ · очередь</h1>
+<p class="muted">Задачи, которые ядро окончательно отказалось выполнять. «Повторить» ставит их обратно в очередь с нулевыми попытками; «Похоронить» закрывает задачу вручную (например, бренд уже выдал гостю оффлайн). Каждое действие пишется в журнал.</p>
+
+<form method="get" action="/admin/jobs/dead" class="dlq-filter">
+  <label>Тип задачи
+    <select name="kind">
+      <option value=""{% if not kind %} selected{% endif %}>— все —</option>
+      {% for k in kinds %}
+      <option value="{{ k }}"{% if kind == k %} selected{% endif %}>{{ k }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <button type="submit">Применить</button>
+</form>
+
+{% if flash %}
+  {% if flash.level == "ok" and flash.kind == "revive" %}
+    <p class="notice">Задача возвращена в очередь.</p>
+  {% elif flash.level == "ok" and flash.kind == "bury" %}
+    <p class="notice">Задача закрыта вручную. След остался в журнале.</p>
+  {% elif flash.level == "error" and flash.kind == "not_dead" %}
+    <p class="error">Задача уже не dead: кто-то повторил или похоронил её раньше.</p>
+  {% elif flash.level == "error" and flash.kind == "bury_reason_unknown" %}
+    <p class="error">Выберите причину из списка.</p>
+  {% elif flash.level == "error" %}
+    <p class="error">Ошибка: {{ flash.kind }}.</p>
+  {% endif %}
+{% endif %}
+
+<p class="count">Найдено: {{ total }} · страница {{ page }}</p>
+
+{% if items %}
+<table class="dlq">
+  <thead>
+    <tr>
+      <th>ID</th><th>Тип</th><th>Попыток</th>
+      <th>Обновлено (UTC)</th><th>idempotency_key</th>
+      <th>Последняя ошибка</th><th>Действия</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for job in items %}
+    <tr class="dead-job" data-job-id="{{ job.id }}">
+      <td>{{ job.id }}</td>
+      <td>{{ job.kind }}</td>
+      <td>{{ job.attempts }} / {{ job.max_attempts }}</td>
+      <td title="{{ job.updated_iso }}">{{ job.updated_label }}</td>
+      <td>{{ job.idempotency_key or "—" }}</td>
+      <td class="last-error">{{ job.last_error or "—" }}</td>
+      <td class="actions">
+        <form method="post" action="/admin/jobs/dead/{{ job.id }}/revive" class="dlq-action" style="display:inline">
+          <input type="hidden" name="_csrf" value="{{ csrf }}">
+          <input type="hidden" name="kind" value="{{ kind }}">
+          <input type="hidden" name="page" value="{{ page }}">
+          <button type="submit">Повторить</button>
+        </form>
+        <form method="post" action="/admin/jobs/dead/{{ job.id }}/bury" class="dlq-action" style="display:inline">
+          <input type="hidden" name="_csrf" value="{{ csrf }}">
+          <input type="hidden" name="kind" value="{{ kind }}">
+          <input type="hidden" name="page" value="{{ page }}">
+          <label>Причина
+            <select name="reason" required>
+              <option value="" selected disabled>— выберите —</option>
+              {% for slug in reasons %}
+              <option value="{{ slug }}">{{ slug }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <button type="submit">Похоронить</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+<p>
+  {% if has_prev %}<a href="/admin/jobs/dead?{{ base_query }}&amp;page={{ page - 1 }}">← Назад</a>{% endif %}
+  {% if has_next %}<a href="/admin/jobs/dead?{{ base_query }}&amp;page={{ page + 1 }}">Вперёд →</a>{% endif %}
+</p>
+{% else %}
+<p>Нет задач в DLQ{% if kind %} по типу <code>{{ kind }}</code>{% endif %}.</p>
+{% endif %}
+{% endblock %}

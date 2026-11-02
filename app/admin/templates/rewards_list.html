@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Награды</h1>
+<form method="get" action="/admin/rewards">
+  <label>Тип
+    <select name="type">
+      {% for value, label in [("promocode", "Промокоды"), ("voucher", "Ваучеры"), ("all", "Все")] %}
+      <option value="{{ value }}"{% if type == value %} selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Статус
+    <select name="status">
+      {% for value, label in [("issued", "Выданные"), ("redeemed", "Погашенные"), ("revoked", "Отозванные"), ("all", "Все")] %}
+      <option value="{{ value }}"{% if status == value %} selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Активность (slug)
+    <input type="text" name="activity_slug" value="{{ activity_slug }}" maxlength="100">
+  </label>
+  <button type="submit">Применить</button>
+</form>
+<p class="count">Найдено: {{ total }} · страница {{ page }}</p>
+{% if items %}
+<table class="rewards">
+  <thead>
+    <tr><th>ID</th><th>Выдан (UTC)</th><th>Тип</th><th>Код</th><th>Название</th><th>Активность</th><th>Гость (user_id)</th><th>Статус</th></tr>
+  </thead>
+  <tbody>
+  {% for r in items %}
+    <tr class="reward" data-status="{{ r.status }}">
+      <td>{{ r.id }}</td><td>{{ r.issued_label }}</td><td>{{ r.reward_type }}</td>
+      <td>{{ r.code }}</td><td>{{ r.title }}</td>
+      <td>{{ r.activity_display_name }} ({{ r.activity_slug }})</td>
+      <td data-user-id="{{ r.user_id }}">{{ r.user_id }}</td>
+      <td>{{ r.status_label }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+<p>
+  {% if has_prev %}<a href="/admin/rewards?{{ base_query }}&amp;page={{ page - 1 }}">← Назад</a>{% endif %}
+  {% if has_next %}<a href="/admin/rewards?{{ base_query }}&amp;page={{ page + 1 }}">Вперёд →</a>{% endif %}
+</p>
+{% else %}
+<p>Наград под эти фильтры нет.</p>
+{% endif %}
+{% endblock %}

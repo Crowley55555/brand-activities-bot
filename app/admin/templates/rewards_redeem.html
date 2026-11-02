@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Погасить именную награду</h1>
+<p class="muted">Гость называет 6-значный код у стойки. Проверьте карточку, прежде чем выдавать подарок.</p>
+<form method="post" action="/admin/rewards/redeem" class="decision">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
+  <label>Код (6 цифр)
+    <input type="text" name="otp" value="{{ otp_value }}" maxlength="6" minlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="off" required>
+  </label>
+  <button type="submit">Найти награду</button>
+</form>
+{% if error == "otp_not_found" %}
+<p class="error">Код не найден или истёк. Попросите гостя нажать «подойду сейчас» ещё раз.</p>
+{% elif error == "otp_mismatch" %}
+<p class="error">Код не совпадает с открытой карточкой. Проверьте ещё раз.</p>
+{% elif error == "user_anonymized" %}
+<p class="error">Гость отозвал согласие на обработку данных: выдача невозможна.</p>
+{% elif error == "already_redeemed" %}
+<p class="error">Награда уже погашена.</p>
+{% elif error == "reward_revoked" %}
+<p class="error">Награда отозвана и не выдаётся.</p>
+{% elif error == "otp_collision" %}
+<p class="error">Не удалось сгенерировать уникальный код: попросите гостя повторить «подойду сейчас» через минуту.</p>
+{% elif error %}
+<p class="error">Ошибка: {{ error }}.</p>
+{% endif %}
+{% if card %}
+<section class="card">
+  <h2>Карточка владельца</h2>
+  <p>Имя: {{ card.first_name_masked }} {{ card.last_name_masked }}</p>
+  <p>Telegram: {% if card.telegram_username %}@{{ card.telegram_username }}{% else %}—{% endif %}</p>
+  <p>Награда #{{ card.reward_id }} · тип {{ card.reward_type }}{% if card.title %} · «{{ card.title }}»{% endif %}</p>
+  <form method="post" action="/admin/rewards/redeem/{{ card.reward_id }}" class="decision">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <input type="hidden" name="otp" value="{{ otp_value }}">
+    <button type="submit">Погасил</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

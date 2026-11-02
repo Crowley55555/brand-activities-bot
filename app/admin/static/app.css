@@ -1,0 +1,9 @@
+/* Минимальные стили скелета админки; настоящий дизайн - в фазах с реальными экранами. */
+body { font-family: system-ui, sans-serif; margin: 0; color: #1c1c1c; background: #fafafa; }
+main { max-width: 40rem; margin: 2rem auto; padding: 0 1rem; }
+.topbar { display: flex; gap: 1rem; align-items: center; padding: .75rem 1rem; background: #1c1c1c; color: #fff; }
+.topbar a { color: #fff; text-decoration: none; }
+.topbar .who { margin-left: auto; opacity: .8; }
+form.login label { display: block; margin: 1rem 0; }
+form.login input[type="text"], form.login input[type="password"] { display: block; width: 100%; padding: .5rem; box-sizing: border-box; }
+.error { color: #b00020; }

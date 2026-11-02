@@ -1,0 +1,16 @@
+<nav class="topbar">
+  <a class="brand" href="/admin/">brand_activities_bot · админка</a>
+  <a href="/admin/ugc">Модерация UGC</a>
+  <a href="/admin/schedule">Расписание</a>
+  <a href="/admin/users">Пользователи</a>
+  <a href="/admin/rewards?type=promocode&amp;status=issued">Награды</a>
+  <a href="/admin/rewards/redeem">Погашение</a>
+  <a href="/admin/jobs/dead">DLQ</a>
+  <a href="/admin/metrics?days=7">Метрики</a>
+  <span class="who">{{ admin.display_name }}</span>
+  {# I-3 фазы 10b-2: POST с CSRF вместо GET-ссылки (канон 07 §4.4, правило 10). #}
+  <form method="post" action="/admin/logout" class="logout-form" style="display:inline">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <button type="submit" class="logout">Выход</button>
+  </form>
+</nav>

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<p><a href="/admin/ugc">← к очереди</a></p>
+<h1>Фото #{{ item.submission_id }}</h1>
+<p>Бренд: {{ item.brand_name }} · активность: {{ item.activity_name }} · подано (UTC): {{ item.submitted_label }}</p>
+{% if item.preview_url %}
+<p><img class="preview" src="{{ item.preview_url }}" alt="Фото на модерации" style="max-width:100%"></p>
+{% endif %}
+<p>Пост: {% if item.post_url|safe_url %}<a href="{{ item.post_url|safe_url }}" target="_blank" rel="noopener noreferrer nofollow">{{ item.post_url|safe_url }}</a>{% else %}—{% endif %}</p>
+<p>Подписка: {% if item.subscription_url|safe_url %}<a href="{{ item.subscription_url|safe_url }}" target="_blank" rel="noopener noreferrer nofollow">{{ item.subscription_url|safe_url }}</a>{% else %}—{% endif %}</p>
+<p>Статус: {{ item.status }}</p>
+{% if item.status == "pending" %}
+<form method="post" action="/admin/ugc/{{ item.submission_id }}/approve" class="decision">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
+  <button type="submit">Одобрить</button>
+</form>
+<form method="post" action="/admin/ugc/{{ item.submission_id }}/reject" class="decision">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
+  <label>Причина
+    <select name="reason_slug" required>
+      {% for slug, label in item.reject_reasons.items() %}<option value="{{ slug }}">{{ label }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>Комментарий (необязательно)
+    <textarea name="reason_note" maxlength="500" rows="3"></textarea>
+  </label>
+  <button type="submit">Отклонить</button>
+</form>
+{% endif %}
+{% endblock %}

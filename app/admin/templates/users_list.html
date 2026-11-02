@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Пользователи</h1>
+<p class="count">Зарегистрировано: {{ total }} · страница {{ page }}</p>
+{% if notice %}<p class="notice">{{ notice }}</p>{% endif %}
+{% if items %}
+<table class="users">
+  <thead>
+    <tr><th>ID</th><th>Создан (UTC)</th><th>Регистрация (UTC)</th><th>Последний визит (UTC)</th><th>Имя</th><th>Фамилия</th><th>Телефон</th><th>Email</th></tr>
+  </thead>
+  <tbody>
+  {% for u in items %}
+    {% if u.is_anonymized %}
+    <tr class="anonymized">
+      <td>{{ u.user_id }}</td><td>{{ u.created_label }}</td><td>{{ u.registered_label }}</td><td>{{ u.last_seen_label }}</td>
+      <td colspan="4">Удалён (анонимизирован)</td>
+    </tr>
+    {% else %}
+    <tr>
+      <td>{{ u.user_id }}</td><td>{{ u.created_label }}</td><td>{{ u.registered_label }}</td><td>{{ u.last_seen_label }}</td>
+      <td>{{ u.first_name }}</td><td>{{ u.last_name }}</td>
+      <td>{{ u.phone }}
+        {% if not u.phone_revealed %}
+        <form method="post" action="/admin/users/{{ u.user_id }}/reveal_phone" style="display:inline">
+          <input type="hidden" name="_csrf" value="{{ csrf }}">
+          <input type="hidden" name="page" value="{{ page }}">
+          <button type="submit">Показать телефон</button>
+        </form>
+        {% endif %}
+      </td>
+      <td>{{ u.email }}</td>
+    </tr>
+    {% endif %}
+  {% endfor %}
+  </tbody>
+</table>
+<p>
+  {% if has_prev %}<a href="/admin/users?page={{ page - 1 }}">← Назад</a>{% endif %}
+  {% if has_next %}<a href="/admin/users?page={{ page + 1 }}">Вперёд →</a>{% endif %}
+</p>
+{% else %}
+<p>Пользователей пока нет.</p>
+{% endif %}
+{% endblock %}

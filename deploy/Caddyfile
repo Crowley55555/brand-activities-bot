@@ -1,0 +1,9 @@
+{$DOMAIN} {
+	reverse_proxy app:8000
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+	}
+	# Access-лог Caddy сознательно НЕ включён: в URL лежат токены /media/<id>?t=<token>
+	# (в uvicorn access-лог отключён по той же причине, ревью фазы 3b).
+}

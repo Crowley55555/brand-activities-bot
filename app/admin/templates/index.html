@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Админка brand_activities_bot</h1>
+<p>Вы вошли как <strong>{{ admin.display_name }}</strong>.</p>
+<ul class="admin-sections">
+  <li><a href="/admin/ugc">Модерация UGC</a> — очередь фото от гостей (approve / reject).</li>
+  <li><a href="/admin/schedule">Расписание</a> — слоты бронирования (Бренд A-диагностика, Бренд C-стилист), создание single и bulk.</li>
+  <li><a href="/admin/users">Пользователи</a> — список с маскированными ПДн, кнопка «Показать телефон» пишется в аудит.</li>
+  <li><a href="/admin/rewards?type=promocode&amp;status=issued">Награды</a> — промокоды и ваучеры с фильтрами по типу, статусу и активности.</li>
+  <li><a href="/admin/metrics?days=7">Метрики</a> — регистрации, прохождения, промокоды и ваучеры по дням (МСК).</li>
+</ul>
+{% endblock %}

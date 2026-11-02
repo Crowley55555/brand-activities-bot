@@ -1,0 +1,59 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: brand_activities_bot
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d brand_activities_bot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.app
+    env_file:
+      - path: .env
+        required: false
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/brand_activities_bot
+
+  tg_worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.tg_worker
+    env_file:
+      - path: .env
+        required: false
+    depends_on:
+      app:
+        condition: service_started
+    environment:
+      INTERNAL_API_URL: http://app:8000
+
+  workers:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.app
+    command: ["python", "-m", "app.workers"]
+    env_file:
+      - path: .env
+        required: false
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/brand_activities_bot
+
+volumes:
+  postgres_data:

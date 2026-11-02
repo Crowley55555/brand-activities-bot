@@ -1,0 +1,97 @@
+# Prod RU-сервера (фаза 8a): postgres + app + jobs worker + caddy (HTTPS).
+# Запуск: docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+# .env.prod - из .env.example.prod, в git не коммитится (правило 8).
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+x-app-env: &app-env
+  TZ: ${TZ:-Europe/Moscow}
+  DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:?}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:?}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Europe/Moscow}
+      POSTGRES_USER: ${POSTGRES_USER:?}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:?}
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging: *logging
+
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.app
+    restart: unless-stopped
+    env_file: .env.prod
+    environment:
+      <<: *app-env
+      UGC_LOCAL_PATH: /data/ugc
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Порт наружу НЕ публикуем: трафик идёт только через caddy внутри compose-сети.
+    expose:
+      - "8000"
+    volumes:
+      - ./data/ugc:/data/ugc
+    healthcheck:
+      # В python:slim нет curl - проверяем /health штатным urllib.
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).status == 200 else 1)"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging: *logging
+
+  # Фоновые задачи: ingest UGC, outbox, планировщик (python -m app.workers, ADR-28).
+  jobs_worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.app
+    restart: unless-stopped
+    command: ["python", "-m", "app.workers"]
+    env_file: .env.prod
+    environment:
+      <<: *app-env
+      UGC_LOCAL_PATH: /data/ugc
+    depends_on:
+      postgres:
+        condition: service_healthy
+      app:
+        condition: service_healthy
+    volumes:
+      - ./data/ugc:/data/ugc
+    logging: *logging
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy-data:/data
+      - ./caddy-config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+    logging: *logging

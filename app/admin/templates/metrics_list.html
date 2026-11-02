@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Метрики</h1>
+<form method="get" action="/admin/metrics">
+  <label>Дней
+    <input type="number" name="days" value="{{ days }}" min="1" max="90">
+  </label>
+  <label>Бренд (slug)
+    <input type="text" name="brand_slug" value="{{ brand_slug }}" maxlength="100">
+  </label>
+  <button type="submit">Применить</button>
+</form>
+{% if brand_filtered %}<p class="count">Регистрации не привязаны к бренду и при фильтре не считаются.</p>{% endif %}
+<table class="metrics">
+  <thead>
+    <tr><th>Дата (МСК)</th><th>Регистраций</th><th>Прохождений завершено</th><th>Промокодов выдано</th><th>Ваучеров выдано</th></tr>
+  </thead>
+  <tbody>
+  {% for r in rows %}
+    <tr class="metric-day" data-day="{{ r.day.isoformat() }}">
+      <td>{{ r.day.isoformat() }}</td><td>{{ r.registrations }}</td><td>{{ r.completed_attempts }}</td>
+      <td>{{ r.promocodes_issued }}</td><td>{{ r.vouchers_issued }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

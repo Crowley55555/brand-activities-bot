@@ -1,0 +1,60 @@
+# Prod 2-го сервера (NL, фаза 8b): tg_worker (long polling) + tinyproxy (HTTPS-прокси для RU).
+# Запуск: docker compose -f docker-compose.tg.yml --env-file .env.tg up -d
+# Нужен исходящий доступ к api.telegram.org и к HTTPS RU-сервера. .env.tg в git не коммитится.
+# tinyproxy слушает 8443 — RU jobs_worker ходит через него к api.telegram.org (TG CDN блокирован с РФ).
+# Allow в tinyproxy ограничен IP RU-сервера (deploy/tinyproxy.conf; шаблон .example в репозитории).
+services:
+  tg_worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.tg_worker
+    restart: unless-stopped
+    env_file: .env.tg
+    environment:
+      TZ: ${TZ:-Europe/Moscow}
+    # I-5 (фаза 10a): healthcheck. При залипании контейнера (бесконечный await, DNS-сбой до
+    # RU) compose теперь считает его unhealthy и перезапускает (restart: unless-stopped).
+    # Проверяем связность с RU-ядром через /health — getMe не используем, чтобы не тратить
+    # TG-API-квоту каждые 30 секунд.
+    # fix-1 N-6 (фаза 10a): INTERNAL_API_URL читаем через os.environ.get, при
+    # отсутствии переменной — exit 2 (отличимо от «endpoint не ответил» = 1).
+    # Без этого KeyError уходил в логи healthcheck невнятным трейсбеком.
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import os, urllib.request, sys; url=os.environ.get('INTERNAL_API_URL','').rstrip('/');
+          sys.exit(2) if not url else sys.exit(0 if urllib.request.urlopen(url+'/health',
+          timeout=5).status==200 else 1)"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+  tinyproxy:
+    image: monokal/tinyproxy:latest
+    # I-4 (фаза 10a): командой `ANY` tinyproxy генерил конфиг `Allow 0.0.0.0/0`
+    # и единственной защитой был ufw на хосте. Теперь allow-list в самом tinyproxy —
+    # подкладывается через volume (deploy/tinyproxy.conf). Файл не в git (там IP),
+    # шаблон deploy/tinyproxy.conf.example остаётся.
+    restart: unless-stopped
+    ports:
+      # 8443 — провайдер NL блокировал 3128/tcp inbound (8b фактическая проверка).
+      # 443 занят mtg-proxy. 8443 стабильно пропускается большинством провайдеров.
+      - "8443:8888"
+    environment:
+      TZ: ${TZ:-Europe/Moscow}
+    volumes:
+      - ./deploy/tinyproxy.conf:/etc/tinyproxy/tinyproxy.conf:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    # firewall на хосте: ufw allow from <RU_IP> to any port 8443 proto tcp
+    # (DEPLOY.md §6). ufw остаётся как дополнительный барьер; главная защита — allow в tinyproxy.conf.

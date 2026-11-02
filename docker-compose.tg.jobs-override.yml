@@ -1,0 +1,31 @@
+# Override для 2-го сервера: добавляет jobs_worker рядом с tg_worker.
+# Использовать, если RU-сервер не дотягивается до api.telegram.org (ingest_ugc_file падает).
+# После диагностики (см. deploy/DEPLOY.md раздел «Диагностика Telegram CDN на RU») —
+# на 2-м сервере:
+#   docker compose -f docker-compose.tg.yml -f docker-compose.tg.jobs-override.yml --env-file .env.tg up -d
+# На RU-сервере тогда убрать jobs_worker:
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod stop jobs_worker
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod rm -f jobs_worker
+# INTERNAL_API_URL должен указывать на RU-домен (как и для tg_worker).
+# Storage: jobs_worker пишет в UGC_LOCAL_PATH (local_fs) или в S3 (UGC_STORAGE=s3).
+# В local_fs режиме на 2-м сервере будет свой /data/ugc — тогда /media/<id> на RU
+# НЕ найдёт файл. В этом случае обязательно переключать на S3 (UGC_STORAGE=s3).
+services:
+  jobs_worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.app
+    command: ["python", "-m", "app.workers"]
+    restart: unless-stopped
+    env_file: .env.tg
+    environment:
+      TZ: ${TZ:-Europe/Moscow}
+      # Для доступа к БД (jobs_repo claim_batch) нужен сетевой доступ до postgres на RU.
+      # Через HTTPS/HMAC jobs_worker ядро НЕ ходит — только через psycopg к postgres.
+      # Поэтому в этом режиме RU должен открыть 5432/tcp для IP 2-го сервера
+      # (строгий firewall + TLS желательно).
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"

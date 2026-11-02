@@ -1,0 +1,17 @@
+<tr>
+  <td>{{ row.time }}</td>
+  <td>{{ row.activity }}</td>
+  <td>{{ row.status }}</td>
+  <td>
+    {% if row.can_mark %}
+    <form method="post" action="/admin/schedule/{{ row.slot_id }}/mark_arrived" style="display:inline">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <button type="submit">Пришёл</button>
+    </form>
+    <form method="post" action="/admin/schedule/{{ row.slot_id }}/mark_no_show" style="display:inline">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <button type="submit">Не пришёл</button>
+    </form>
+    {% endif %}
+  </td>
+</tr>

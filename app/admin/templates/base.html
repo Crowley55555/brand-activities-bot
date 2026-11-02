@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }} — brand_activities_bot</title>
+  <link rel="stylesheet" href="/admin/static/app.css">
+</head>
+<body>
+{% if admin %}{% include "nav.html" %}{% endif %}
+<main>
+{% block content %}{% endblock %}
+</main>
+{# HTMX подключён для фазы 7 (замена строки после решения); в фазе 3b решения - обычный 302. #}
+<script src="/admin/static/htmx.min.js" defer></script>
+</body>
+</html>

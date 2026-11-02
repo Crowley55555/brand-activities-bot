@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Расписание на {{ today }} (МСК)</h1>
+{% if flash %}<p class="flash flash-{{ flash.kind }}">{{ flash.text }}</p>{% endif %}
+{% if rows %}
+<table>
+  <thead>
+    <tr><th>Время</th><th>Активность</th><th>Статус</th><th>Действия</th></tr>
+  </thead>
+  <tbody>
+  {% for row in rows %}
+    {% include "schedule_row.html" %}
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>На сегодня слотов нет.</p>
+{% endif %}
+
+<h2>Новый слот</h2>
+<form method="post" action="/admin/schedule/create_slot">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
+  <label>Активность
+    <select name="activity_id">
+      {% for item in activities %}
+      <option value="{{ item.id }}">{{ item.name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Начало (МСК)
+    <input type="datetime-local" name="start_at" required>
+  </label>
+  <label>Длительность, мин
+    <input type="number" name="duration_minutes" value="15" min="1" max="240">
+  </label>
+  <button type="submit">Добавить слот</button>
+</form>
+
+<h2>Массовое создание слотов на сегодня</h2>
+<form method="post" action="/admin/schedule/bulk_create_slots">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
+  <label>Активность
+    <select name="activity_id">
+      {% for item in activities %}
+      <option value="{{ item.id }}">{{ item.name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Начало дня (МСК)
+    <input type="datetime-local" name="day_start_local" required>
+  </label>
+  <label>Конец дня (МСК)
+    <input type="datetime-local" name="day_end_local" required>
+  </label>
+  <label>Шаг (= длительность слота), мин
+    <input type="number" name="step_minutes" value="30" required>
+  </label>
+  <button type="submit">Создать слоты</button>
+</form>
+{% endblock %}

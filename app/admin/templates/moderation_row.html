@@ -1,0 +1,8 @@
+<tr class="ugc-row" id="ugc-{{ row.submission_id }}">
+  <td>{% if row.preview_url %}<img src="{{ row.preview_url }}" alt="Фото на модерации" width="96" loading="lazy">{% else %}—{% endif %}</td>
+  <td>{{ row.brand_name }}</td>
+  <td>{% if row.post_url|safe_url %}<a href="{{ row.post_url|safe_url }}" target="_blank" rel="noopener noreferrer nofollow">пост</a>{% else %}—{% endif %}</td>
+  <td>{% if row.subscription_url|safe_url %}<a href="{{ row.subscription_url|safe_url }}" target="_blank" rel="noopener noreferrer nofollow">профиль</a>{% else %}—{% endif %}</td>
+  <td>{{ row.submitted_label }}</td>
+  <td><a href="/admin/ugc/{{ row.submission_id }}">Открыть</a></td>
+</tr>
